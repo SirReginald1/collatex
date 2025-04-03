@@ -3,24 +3,35 @@
         
     @author: Ronald Haentjens Dekker
 '''
+from typing import Set, Union, TYPE_CHECKING
 from collatex.core_classes import VariantGraphRanking
+from collatex.edit_graph_aligner import EditGraphAligner
+if TYPE_CHECKING:
+    from collatex.experimental_astar_aligner import AstarEditGraphAligner
+    from collatex.block import Instance
 
 # New transposition detection implementation, still beta quality
 # This implementation works with the new collation algorithm (LCP intervals and edit graph)
 class TranspositionDetection(object):
+    """Object used for transposition detection from CollationAlgorithm objects.\n 
+    !!!!!!!!!!!!!! ONLY WORKS WITH EditGraphAligner and maybe AstarEditGraphAligner !!!!!!!!!!!!!
+    """
 
-    def __init__(self, aligner):
-        self.aligner = aligner
+    def __init__(self, aligner: Union[EditGraphAligner, AstarEditGraphAligner]) -> "TranspositionDetection":
+        self.aligner: Union[EditGraphAligner, AstarEditGraphAligner] = aligner
+        """The aligner being used. !!!! We know it's this class as transposition detection 
+        only occurse in Dekkers edit Graph algorithm !!!!!!!"""
 
     def detect(self):
         # analyse additions and omissions to detect transpositions
         # We fetch all the occurrences of the added tokens
         # Using the scorer (which has the blocks and occurrences of these blocks)
-        added_occurrences = set()
+        added_occurrences: Set[Instance] = set()
+        # Run through all tokens that are classified as additions
         for token in self.aligner.additions:
-            # get occurrences from scorer
-            occurrence = self.aligner.scorer.global_tokens_to_occurrences[token]
-            # Note: not every token is an occurrence of a block
+            # get the occurrence / occurrence list (of block ????) associated with that token
+            occurrence = self.aligner.scorer.global_tokens_to_occurrences[token] # Find the specific scorers way of linking tokens to Instances
+            # NOTE: not every token is an occurrence of a block
             if occurrence:
                 added_occurrences.add(occurrence)
         # for every occurrences we have to detect the associated block

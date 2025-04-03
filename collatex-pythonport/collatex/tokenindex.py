@@ -1,30 +1,50 @@
+from typing import Dict, List
 from ClusterShell.RangeSet import RangeSet
-from collatex.block import Block
-from collatex.core_classes import Token
+from collatex.block import Block, Instance
+from collatex.core_classes import Token, Witness
 from collatex.linsuffarr import SuffixArray
 from collatex.linsuffarr import UNIT_BYTE
 
 
 class Stack(list):
-    def push(self, item):
+    """Last in first out storage for Block objects."""
+    def push(self, item: Block) -> None:
+        """Place block onto stack.
+        ### Params:
+            - item (Block): Bolck to be placed onto the stack.
+        """
         self.append(item)
 
-    def peek(self):
+    def peek(self) -> Block:
+        """Returns last element to placed onto the stack.
+        
+        ### Return:
+            - The last element to be placed onto the stack.
+        """
         return self[-1]
 
 
 # TokenIndex
 class TokenIndex(object):
-    def __init__(self, witnesses):
-        self.witnesses = witnesses
+    """Class used to store all arrays of suffixes, prefixes, and token indexes for every index in the token array.
+    Used to increase efficiency match finding efficency.???????"""
+    def __init__(self, witnesses: Witness):
+        self.witnesses: List[Witness] = witnesses
+        """The list of all witnesses referenced by this TokenIndex.????????"""
         # print("\nwitnesses=",witnesses)
-        self.counter = 0
-        self.witness_ranges = {}
-        self.token_array = []
+        self.counter: int = 0
+        self.witness_ranges: Dict[str, RangeSet] = {}
+        """Dictionary coontaining the ranges for each of the witnesses sigil (id) as key, RangeSet as value"""
+        self.token_array: List[Token] = []
+        """An array containg all the tokens of all the witnesses to be collated. Includes duplicates."""
         self.witness_to_block_instances = {}
+        """Matches the a witness to an instance of a block (collection of tokens that are common to multiple witnesses)????????????"""
         self.suffix_array = []
+        """Array containing all possible suffixes (maby matching suffixes / Blocks). ?????????????"""
         self.lcp_array = []
-        self.blocks = []
+        """List of longest common prefixes."""
+        self.blocks: List[Block] = []
+        """List of longest common prefixes intervals."""
 
     def prepare(self):
         self._prepare_token_array()
@@ -41,7 +61,11 @@ class TokenIndex(object):
         token_index.prepare()
         return token_index
 
-    def _prepare_token_array(self):
+    def _prepare_token_array(self) -> None:
+        """Creates a RangeSet for the indexes of all the tokens for faster prosseesing.\n
+        Adds the witnesses sigil to each of its tokens as well as its position in the sequence.\n
+        Adds all tokens in the collation to the token_array.\n
+        """
         # TODO: the lazy init should move to somewhere else
         # clear the suffix array and LCP array cache
         self.cached_suffix_array = None
@@ -65,9 +89,9 @@ class TokenIndex(object):
             token_array_position += 1
         self.token_array.pop()  # remove last marker
 
-    def split_lcp_array_into_intervals(self):
-        closed_intervals = []
-        previous_lcp_value = 0
+    def split_lcp_array_into_intervals(self) -> List[Block]:
+        closed_intervals: List[Block] = []
+        previous_lcp_value: int = 0
         open_intervals = Stack()
         for idx in range(0, len(self.lcp_array)):
             lcp_value = self.lcp_array[idx]
@@ -97,7 +121,7 @@ class TokenIndex(object):
         # print("> closed_intervals=", closed_intervals)
         return closed_intervals
 
-    def get_range_for_witness(self, witness_sigil):
+    def get_range_for_witness(self, witness_sigil: str) -> RangeSet:
         if witness_sigil not in self.witness_ranges:
             raise Exception("Witness " + witness_sigil + " is not added to the collation!")
         return self.witness_ranges[witness_sigil]
@@ -124,13 +148,13 @@ class TokenIndex(object):
         sa = self.get_sa()
         return sa._LCP_values
 
-    def start_token_position_for_witness(self, witness):
+    def start_token_position_for_witness(self, witness: Witness) -> int:
         return self.get_range_for_witness(witness.sigil)[0]
 
-    def block_instances_for_witness(self, witness):
+    def block_instances_for_witness(self, witness: Witness) -> Instance:
         return self.witness_to_block_instances.setdefault(witness.sigil, [])
 
-    def construct_witness_to_block_instances_map(self):
+    def construct_witness_to_block_instances_map(self) -> None:
         self.witness_to_block_instances = {}
         ##print("> self.blocks", self.blocks)
         for interval in self.blocks:

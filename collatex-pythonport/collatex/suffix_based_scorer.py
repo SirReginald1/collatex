@@ -3,6 +3,7 @@ Created on Aug 5, 2014
 
 @author: Ronald Haentjens Dekker
 '''
+from typing import Dict, List, Union, Callable, Any, TYPE_CHECKING
 from collatex.extended_suffix_array import Occurrence, BlockWitness, Block,\
     PartialOverlapException
 from operator import attrgetter
@@ -17,29 +18,32 @@ try:
     from Levenshtein import ratio
 except:
     pass
-
-
-'''
- This class scores cells in the edit graph table based on the largest non overlapping blocks
- that are found in the witness set.
-'''
+#if TYPE_CHECKING:
+from collatex.tokenindex import TokenIndex
 
 
 class Scorer(object):
-    def __init__(self, token_index, near_match=False, properties_filter=None):
-        self.token_index = token_index
-        self.blocks = []
+    '''
+     This class scores cells in the edit graph table based on the largest non overlapping blocks
+     that are found in the witness set.
+    '''
+    def __init__(self, 
+                 token_index: TokenIndex, 
+                 near_match: bool = False, 
+                 properties_filter: Union[Dict[str, Any], None]=None) -> "Scorer":
+        self.token_index: TokenIndex = token_index
+        self.blocks: List[Block] = []
         self.global_tokens_to_occurrences = {}
-        self.properties_filter=properties_filter
+        self.properties_filter: Union[Dict[str, Any], None] = properties_filter
         if near_match:
-            self.match_function = self.near_match
+            self.match_function: Callable = self.near_match
         else:
-            self.match_function = self.match
+            self.match_function: Callable = self.match
 
     # edit operation:
     #    0 == match/replacement
     #    1 == addition/omission
-    def score_cell(self, table_node, parent_node, token_a, token_b, y, x, edit_operation):
+    def score_cell(self, table_node, parent_node, token_a, token_b, y, x, edit_operation) -> None:
         # no matching possible in this case (always treated as a gap)
         # it is either an add or a delete
         if x == 0 or y == 0:

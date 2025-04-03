@@ -1,20 +1,25 @@
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    from collatex.tokenindex import TokenIndex
+
 class Block:
+    """Class that represents the a collection of tokens. Block are used to find collections of matching tokens between witnesses. ??????????"""
     def __init__(self, token_index, start=0, end=0, length=0):
         # every Block has a token index as a parent
-        self.token_index = token_index
+        self.token_index: TokenIndex = token_index
 
         # length = number of tokens in this block of text
-        self.length = length
+        self.length: int = length
 
         # start = start position in suffix array
-        self.start = start
+        self.start: int = start
 
         # end = end position in suffix array
-        self.end = end
+        self.end: int = end
 
         #  depth = number of witnesses this block of text occurs in
         #  Note: depth is lazy initialized
-        self._depth = None if self.end > 0 else 0
+        self._depth: int = None if self.end > 0 else 0
 
     def __repr__(self):
         if self.end == 0:
@@ -68,10 +73,12 @@ class Block:
 
 
 class Instance:
-    def __init__(self, start_token, block):
-        self.block = block
+    """Class used to store an instance of a block (sequence of tokens common to multiple witnesses)"""
+    def __init__(self, start_token: int, block: Block):
+        self.block: Block = block
         #  position in token array
-        self.start_token = start_token
+        self.start_token: int = start_token
+        """The starting position of this instance in the token array."""
 
     def __repr__(self):
         tokens = self.get_tokens()
