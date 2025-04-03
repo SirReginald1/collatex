@@ -123,6 +123,10 @@ public class VariantGraph {
         }
 
         //NOTE: legacy method!
+        /*
+         * Returns a dictionary containing all vertices connected to this one as key and the vertices coresponding
+         * set of witnesses as value.
+         */
         public Map<Vertex, Set<Witness>> incoming() {
             return incoming.entrySet().stream().collect(Collectors.toMap(Map.Entry::getKey, entry -> entry.getValue().sigla));
         }

@@ -48,6 +48,10 @@ def collate(collation, output="table", layout="horizontal", segmentation=True, n
 
     # build graph
     graph = VariantGraph()
+    # TODO: REMOVE THIS
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #temp = algorithm.collate(graph)
+    # !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     algorithm.collate(graph)
     ranking = VariantGraphRanking.of(graph)
     if near_match:
@@ -61,6 +65,10 @@ def collate(collation, output="table", layout="horizontal", segmentation=True, n
     if segmentation:
         join(graph)
         ranking = VariantGraphRanking.of(graph)
+    # TODO: REMOVE THIS
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    #return graph
+    #!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     # check which output format is requested: graph or table
     if output == "svg" or output == "svg_simple":
         return display_variant_graph_as_svg(graph, output)

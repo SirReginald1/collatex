@@ -8,6 +8,7 @@ This module defines the core collation concepts of CollateX
 Tokenizer, Witness, VariantGraph, CollationAlgorithm
 """
 import json
+from typing import Dict, List, Union, Any
 import networkx as nx
 from _collections import deque
 from networkx.algorithms.dag import topological_sort
@@ -19,8 +20,10 @@ from collections import defaultdict
 
 
 class Collation(object):
+    """Obecject containing a list of dicts with each dict containing all the usfull data used for a collation."""
+
     @classmethod
-    def create_from_dict(cls, data, limit=None):
+    def create_from_dict(cls, data: Dict[str, Any], limit: int = None):
         witnesses = data["witnesses"]
         collation = Collation()
         for witness in witnesses[:limit]:
@@ -36,13 +39,18 @@ class Collation(object):
         return collation
 
     def __init__(self):
-        self.witnesses = []
+        self.witnesses: List[Dict[str, Any]] = []
+        """List containing all the data of a text to becollated. 
+        Such as text id, list of tokens and other usfull data about each text 
+        to be used for collation."""
 
-    def add_witness(self, witnessdata):
+    def add_witness(self, witnessdata: dict):
+        """Appends a witness to the list of witnesses (self.witnesses)."""
         witness = Witness(witnessdata)
         self.witnesses.append(witness)
 
-    def add_plain_witness(self, sigil, content):
+    def add_plain_witness(self, sigil: str, content: str):
+        """Creates a witness and appends it to the list of witnesses (self.witnesses)."""
         return self.add_witness({'id': sigil, 'content': content})
 
 
@@ -163,12 +171,15 @@ class WordPunctuationTokenizer(object):
 
 
 class Token(object):
+    """A dictionary containing the string representation of the token as well as any extra data relating to the token."""
     # tokendata comes in the dictionary that we use for JSON input.
     def __init__(self, tokendata=None):
         if tokendata is None:
             # We can have empty tokens.
-            self.token_string = ""
-            self.token_data = {}
+            self.token_string: str = ""
+            """The string of that particular token."""
+            self.token_data: Dict[str, Any] = {}
+            """Any usfull data about the nature of this token."""
         elif 'n' in tokendata:
             self.token_string = tokendata['n']
         elif 't' in tokendata:
@@ -182,9 +193,16 @@ class Token(object):
 
 
 class Witness(object):
-    def __init__(self, witnessdata):
-        self.sigil = witnessdata['id']
-        self._tokens = []
+    """Contains all data relating to a single text to be collated.
+        ### Attributes:
+            - sigil (str): The id of the witness.
+            - _tokens (list): The list containg all the tokens of the witnesse.
+    """
+    def __init__(self, witnessdata: Dict[str, Any]):
+        self.sigil: str = witnessdata['id']
+        """The id of this witness."""
+        self._tokens: List[Token] = []
+        """List of all the tokens of this witness."""
         if 'content' in witnessdata:
             self.content = witnessdata['content']
             # print("Witness "+sigil+" TOKENIZER IS CALLED!")
@@ -199,6 +217,10 @@ class Witness(object):
             self.content = ' '.join([x.token_string for x in self._tokens])
 
     def tokens(self):
+        """Returns the list of tokens.
+        ### Returns:
+            - list: The tokens for this witness.
+        """
         return self._tokens
 
 
@@ -293,12 +315,16 @@ class VariantGraph(object):
 
 
 class CollationAlgorithm(object):
-    def merge(self, graph, witness_sigil, witness_tokens, alignments={}):
+    def merge(self, 
+              graph: VariantGraph, 
+              witness_sigil: str, 
+              witness_tokens: List[Token], 
+              alignments: Dict[Any, VariantGraphVertex]={}) -> Dict[Token, VariantGraphVertex]:
         """
         :type graph: VariantGraph
         """
         # NOTE: token_to_vertex only contains newly generated vertices
-        token_to_vertex = {}
+        token_to_vertex: Dict[Token, VariantGraphVertex] = {}
         last = graph.start
         for token in witness_tokens:
             vertex = alignments.get(token, None)
@@ -373,8 +399,8 @@ class VariantGraphRanking(object):
     def __init__(self):
         # Note: A vertex can have only one rank
         # however, a rank can be assigned to multiple vertices
-        self.byVertex = {}
-        self.byRank = {}
+        self.byVertex: Dict[VariantGraphVertex, int] = {}
+        self.byRank: Dict[int, VariantGraphVertex] = {}
 
     def apply(self, vertex):
         return self.byVertex[vertex]
@@ -389,6 +415,36 @@ class VariantGraphRanking(object):
             for (source, _) in graph.in_edges(v):
                 rank = max(rank, variant_graph_ranking.byVertex[source])
             rank += 1
+            variant_graph_ranking.byVertex[v] = rank
+            variant_graph_ranking.byRank.setdefault(rank, []).append(v)
+        # reverse_topological_sorted_vertices = topological_sort(graph.graph, reverse=True)
+        reverse_topological_sorted_vertices = reversed(list(topological_sort(graph.graph)))
+        for v in reverse_topological_sorted_vertices:
+            incoming_edges = graph.in_near_edges(v, data=True)
+            if incoming_edges:
+                for (u, v, edgedata) in incoming_edges:
+                    # u is at new rank; v is being moved to that same rank
+                    u_rank = variant_graph_ranking.byVertex[u]
+                    old_v_rank = variant_graph_ranking.byVertex[v]
+                    # byVertex: change rank of v
+                    variant_graph_ranking.byVertex[v] = u_rank
+                    # byRank 1: remove v from old rank
+                    variant_graph_ranking.byRank[old_v_rank].remove(v)
+                    # byRank 2: add v to new rank (u_rank)
+                    variant_graph_ranking.byRank[u_rank].append(v)
+        return variant_graph_ranking
+    
+    @classmethod
+    def of_only_certain_vertices(self, graph: VariantGraph, vertices):
+        # first determine rank by incoming sequence edges, ignoring near matching
+        variant_graph_ranking = VariantGraphRanking()
+        topological_sorted_vertices = topological_sort(graph.graph)
+        for v in topological_sorted_vertices:
+            rank = -1
+            for (source, _) in graph.in_edges(v):
+                rank = max(rank, variant_graph_ranking.byVertex[source])
+            if v in vertices:
+                rank += 1
             variant_graph_ranking.byVertex[v] = rank
             variant_graph_ranking.byRank.setdefault(rank, []).append(v)
         # reverse_topological_sorted_vertices = topological_sort(graph.graph, reverse=True)

@@ -51,10 +51,14 @@ public class VariantGraphRanking implements Iterable<Set<VariantGraph.Vertex>>, 
         this.graph = graph;
     }
 
+    /*
+     * Compute the rank of all vertices in the given graph.
+     */
     public static VariantGraphRanking of(VariantGraph graph) {
         final VariantGraphRanking ranking = new VariantGraphRanking(graph);
         for (VariantGraph.Vertex v : graph.vertices()) {
             int rank = -1;
+            // Finds the maximum rank of the current vretex v amongst those that are connected to it.
             for (VariantGraph.Vertex incoming : v.incoming().keySet()) {
                 rank = Math.max(rank, ranking.byVertex.get(incoming));
             }
@@ -65,16 +69,25 @@ public class VariantGraphRanking implements Iterable<Set<VariantGraph.Vertex>>, 
         return ranking;
     }
 
+    /**
+     * Compute the rank only of vertices that are present in the given vertices set for the given graph.
+     * 
+     * @param vertices The set of vertices for which the rank is to be computed.
+     */
     public static VariantGraphRanking ofOnlyCertainVertices(VariantGraph graph, Set<VariantGraph.Vertex> vertices) {
         final VariantGraphRanking ranking = new VariantGraphRanking(graph);
+        // For each vertex
         for (VariantGraph.Vertex v : graph.vertices()) {
             int rank = -1;
+            // Finds the maximum rank of the current vretex v amongst those that are connected to it.
             for (VariantGraph.Vertex incoming : v.incoming().keySet()) {
                 rank = Math.max(rank, ranking.byVertex.get(incoming));
             }
+            // if vertices has the current vertex in the iteration in it increase the rank by 1
             if (vertices.contains(v)) {
                 rank++;
             }
+            // Add the vertex with the calculated rank into the outputed ranking
             ranking.byVertex.put(v, rank);
             ranking.byRank.computeIfAbsent(rank, r -> new HashSet<>()).add(v);
         }

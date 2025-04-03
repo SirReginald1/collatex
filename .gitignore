@@ -18,3 +18,8 @@ bin/
 site/vendor
 node_modules
 /.pydevproject
+.venv/
+collatex-pythonport/collatex/working.ipynb
+collatex-pythonport/collatex/test.py
+working.ipynb
+test.py
